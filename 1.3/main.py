@@ -28,194 +28,10 @@ Controls:
 
 import math
 import tkinter as tk
-from tkinter import filedialog, ttk, messagebox
+from tkinter import filedialog
+from tkinter import ttk, messagebox
 
-@@
- from display.display_file import DisplayFile
-+from obj_io import read_obj, write_obj
- from viewport.window import Window
-@@
-         ttk.Button(
-             toolbar, text="Adicionar", command=self._on_add_object
-         ).pack(side="left", padx=(5, 0))
- 
-+        ttk.Button(
-+            toolbar, text="Abrir .obj", command=self._on_open_obj
-+        ).pack(side="left", padx=(5, 0))
-+
-+        ttk.Button(
-+            toolbar, text="Salvar .obj", command=self._on_save_obj
-+        ).pack(side="left", padx=(5, 0))
-+
-         ttk.Button(
-             toolbar, text="Limpar Tudo", command=self._on_clear_all
-         ).pack(side="left", padx=(5, 0))
-@@
-     def _on_add_object(self, event=None) -> None:
-         """Handle adding an object from the input field.
-@@
-         self.input_var.set("")
-         self.color_var.set("")
-+
-+    def _on_open_obj(self) -> None:
-+        """Carrega objetos de um arquivo .obj e adiciona ao DisplayFile."""
-+        filepath = filedialog.askopenfilename(
-+            title="Abrir arquivo .obj",
-+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
-+        )
-+        if not filepath:
-+            return  # usuário cancelou
-+
-+        try:
-+            objects = read_obj(filepath)
-+        except FileNotFoundError as e:
-+            messagebox.showerror("Arquivo não encontrado", str(e))
-+            return
-+        except ValueError as e:
-+            messagebox.showerror("Formato inválido", str(e))
-+            return
-+
-+        # Tratar conflitos de nome: se o nome já existe, adicionar sufixo _2, _3, ...
-+        added = 0
-+        for obj in objects:
-+            original_name = obj.name
-+            suffix = 2
-+            while obj.name in self.display_file:
-+                obj.name = f"{original_name}_{suffix}"
-+                suffix += 1
-+            self.display_file.add_object(obj)
-+            added += 1
-+
-+        self._refresh_object_list()
-+        self._render_scene()
-+        self._update_status(
-+            f"{added} objeto(s) carregado(s) de '{filepath}'."
-+        )
-+
-+    def _on_save_obj(self) -> None:
-+        """Salva todos os objetos do DisplayFile em um arquivo .obj."""
-+        objects = self.display_file.get_all_objects()
-+        if not objects:
-+            messagebox.showinfo(
-+                "Nada para salvar",
-+                "Não há objetos no DisplayFile."
-+            )
-+            return
-+
-+        filepath = filedialog.asksaveasfilename(
-+            title="Salvar como .obj",
-+            defaultextension=".obj",
-+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
-+        )
-+        if not filepath:
-+            return  # usuário cancelou
-+
-+        try:
-+            write_obj(filepath, objects)
-+        except Exception as e:
-+            messagebox.showerror("Erro ao salvar", str(e))
-+            return
-+
-+        self._update_status(
-+            f"{len(objects)} objeto(s) salvo(s) em '{filepath}'."
-+        )
- 
-     def _on_clear_all(self) -> None:
-         """Handle clearing all objects."""
-*** End of Patch
-@@
- from display.display_file import DisplayFile
-+from obj_io import read_obj, write_obj
- from viewport.window import Window
-@@
-         ttk.Button(
-             toolbar, text="Adicionar", command=self._on_add_object
-         ).pack(side="left", padx=(5, 0))
- 
-+        ttk.Button(
-+            toolbar, text="Abrir .obj", command=self._on_open_obj
-+        ).pack(side="left", padx=(5, 0))
-+
-+        ttk.Button(
-+            toolbar, text="Salvar .obj", command=self._on_save_obj
-+        ).pack(side="left", padx=(5, 0))
-+
-         ttk.Button(
-             toolbar, text="Limpar Tudo", command=self._on_clear_all
-         ).pack(side="left", padx=(5, 0))
-@@
-     def _on_add_object(self, event=None) -> None:
-         """Handle adding an object from the input field.
-@@
-         self.input_var.set("")
-         self.color_var.set("")
-+
-+    def _on_open_obj(self) -> None:
-+        """Carrega objetos de um arquivo .obj e adiciona ao DisplayFile."""
-+        filepath = filedialog.askopenfilename(
-+            title="Abrir arquivo .obj",
-+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
-+        )
-+        if not filepath:
-+            return  # usuário cancelou
-+
-+        try:
-+            objects = read_obj(filepath)
-+        except FileNotFoundError as e:
-+            messagebox.showerror("Arquivo não encontrado", str(e))
-+            return
-+        except ValueError as e:
-+            messagebox.showerror("Formato inválido", str(e))
-+            return
-+
-+        # Tratar conflitos de nome: se o nome já existe, adicionar sufixo _2, _3, ...
-+        added = 0
-+        for obj in objects:
-+            original_name = obj.name
-+            suffix = 2
-+            while obj.name in self.display_file:
-+                obj.name = f"{original_name}_{suffix}"
-+                suffix += 1
-+            self.display_file.add_object(obj)
-+            added += 1
-+
-+        self._refresh_object_list()
-+        self._render_scene()
-+        self._update_status(
-+            f"{added} objeto(s) carregado(s) de '{filepath}'."
-+        )
-+
-+    def _on_save_obj(self) -> None:
-+        """Salva todos os objetos do DisplayFile em um arquivo .obj."""
-+        objects = self.display_file.get_all_objects()
-+        if not objects:
-+            messagebox.showinfo(
-+                "Nada para salvar",
-+                "Não há objetos no DisplayFile."
-+            )
-+            return
-+
-+        filepath = filedialog.asksaveasfilename(
-+            title="Salvar como .obj",
-+            defaultextension=".obj",
-+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
-+        )
-+        if not filepath:
-+            return  # usuário cancelou
-+
-+        try:
-+            write_obj(filepath, objects)
-+        except Exception as e:
-+            messagebox.showerror("Erro ao salvar", str(e))
-+            return
-+
-+        self._update_status(
-+            f"{len(objects)} objeto(s) salvo(s) em '{filepath}'."
-+        )
- 
-     def _on_clear_all(self) -> None:
-         """Handle clearing all objects."""
-*** End of Patch
+from core.coordinate import Coordinate
 from core.graphic_object import GraphicObject
 from core.transformations import (
     Matrix3x3,
@@ -229,6 +45,7 @@ from core.transformations import (
     translation_matrix,
 )
 from display.display_file import DisplayFile
+from obj_io import read_obj, write_obj
 from viewport.window import Window
 from viewport.viewport import Viewport
 from navigation.navigator import Navigator
@@ -380,6 +197,14 @@ class Application:
 
         ttk.Button(
             toolbar, text="Adicionar", command=self._on_add_object
+        ).pack(side="left", padx=(5, 0))
+
+        ttk.Button(
+            toolbar, text="Abrir .obj", command=self._on_open_obj
+        ).pack(side="left", padx=(5, 0))
+
+        ttk.Button(
+            toolbar, text="Salvar .obj", command=self._on_save_obj
         ).pack(side="left", padx=(5, 0))
 
         ttk.Button(
@@ -1083,6 +908,69 @@ class Application:
         )
         self.input_var.set("")
         self.color_var.set("")
+
+    def _on_open_obj(self) -> None:
+        """Carrega objetos de um arquivo .obj e adiciona ao DisplayFile."""
+        filepath = filedialog.askopenfilename(
+            title="Abrir arquivo .obj",
+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
+        )
+        if not filepath:
+            return  # usuário cancelou
+
+        try:
+            objects = read_obj(filepath)
+        except FileNotFoundError as e:
+            messagebox.showerror("Arquivo não encontrado", str(e))
+            return
+        except ValueError as e:
+            messagebox.showerror("Formato inválido", str(e))
+            return
+
+        # Tratar conflitos de nome: se o nome já existe, adicionar sufixo _2, _3, ...
+        added = 0
+        for obj in objects:
+            original_name = obj.name
+            suffix = 2
+            while obj.name in self.display_file:
+                obj.name = f"{original_name}_{suffix}"
+                suffix += 1
+            self.display_file.add_object(obj)
+            added += 1
+
+        self._refresh_object_list()
+        self._render_scene()
+        self._update_status(
+            f"{added} objeto(s) carregado(s) de '{filepath}'."
+        )
+
+    def _on_save_obj(self) -> None:
+        """Salva todos os objetos do DisplayFile em um arquivo .obj."""
+        objects = self.display_file.get_all_objects()
+        if not objects:
+            messagebox.showinfo(
+                "Nada para salvar",
+                "Não há objetos no DisplayFile."
+            )
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            title="Salvar como .obj",
+            defaultextension=".obj",
+            filetypes=[("Wavefront OBJ", "*.obj"), ("Todos os arquivos", "*.*")]
+        )
+        if not filepath:
+            return  # usuário cancelou
+
+        try:
+            write_obj(filepath, objects)
+        except Exception as e:
+            messagebox.showerror("Erro ao salvar", str(e))
+            return
+
+        self._update_status(
+            f"{len(objects)} objeto(s) salvo(s) em '{filepath}'."
+        )
 
     def _on_clear_all(self) -> None:
         """Handle clearing all objects."""

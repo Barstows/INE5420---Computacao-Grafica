@@ -178,6 +178,7 @@ Implementado em [`core/transformations.py`](core/transformations.py:246) —
 ├── test_system.py               # Suite de testes (18 testes)
 ├── test_color_feature.py        # Smoke test da feature de cor (33 asserções)
 ├── test_center_transforms.py    # Testes funcionais das opções "ao redor do centro"
+├── test_obj_integration.py      # Integração sem GUI: round trip OBJ e conflitos de nome
 ├── README.md                    # Este arquivo
 ├── core/
 │   ├── __init__.py
@@ -187,6 +188,11 @@ Implementado em [`core/transformations.py`](core/transformations.py:246) —
 ├── display/
 │   ├── __init__.py
 │   └── display_file.py          # DisplayFile: repositório de objetos
+├── obj_io/
+│   ├── __init__.py              # API pública read_obj/write_obj
+│   ├── obj_descriptor.py        # Conversão de GraphicObject para linhas OBJ
+│   ├── obj_reader.py            # Leitor do subconjunto Wavefront OBJ
+│   └── obj_writer.py            # Escritor do subconjunto Wavefront OBJ
 ├── navigation/
 │   ├── __init__.py
 │   └── navigator.py             # Pan/zoom
@@ -259,6 +265,61 @@ Implementado em [`core/transformations.py`](core/transformations.py:246) —
 | Tecla `R` | Reset da visualização, incluindo `angle = 0` |
 | Tecla `Enter` (no campo de coordenadas) | Adiciona objeto a partir do campo de entrada |
 | Teclas `+` / `-` | Zoom in/out |
+
+---
+
+### 5.6 Leitura e escrita de arquivos `.obj`
+
+A interface expõe dois botões na barra superior para integrar o pacote
+[`obj_io`](obj_io/__init__.py:1) ao [`DisplayFile`](display/display_file.py:12):
+
+- **"Abrir .obj"** — abre um arquivo Wavefront OBJ, lê seus objetos com
+  [`read_obj()`](obj_io/obj_reader.py:97) e os adiciona à cena.
+- **"Salvar .obj"** — serializa todos os objetos atualmente no DisplayFile com
+  [`write_obj()`](obj_io/obj_writer.py:10) em um arquivo escolhido pelo usuário.
+
+Os formatos aceitos na janela de arquivos são `*.obj` e todos os arquivos. O
+leitor ignora comentários e linhas vazias e aceita referências de vértices
+1-based, tanto globais (geradas pelo escritor) quanto reiniciadas por objeto.
+
+#### Conflitos de nome
+
+O `DisplayFile` exige nomes únicos. Ao abrir um arquivo, cada objeto mantém seu
+nome original quando ele ainda não existe; caso contrário, recebe o primeiro
+sufixo disponível, como `Objeto_2`, `Objeto_3` e assim por diante. Isso permite
+importar vários arquivos sem sobrescrever objetos existentes.
+
+#### Limitação de cores
+
+O formato `.obj` usado por esta integração não preserva cores RGB. Objetos
+lidos recebem a cor padrão do sistema (`(0, 0, 0)`); para manter uma cor,
+defina-a novamente na interface antes de salvar ou edite o objeto no sistema.
+
+#### Exemplo de arquivo gerado
+
+Um ponto, uma linha e um triângulo salvos pelo sistema produzem um arquivo
+semelhante a:
+
+```obj
+# Wavefront OBJ - gerado pelo SGI
+o Ponto
+v 1.5 -2.25 0.0
+
+o Linha
+v 0.0 0.0 0.0
+v 10.0 10.0 0.0
+l 2 3
+
+o Triângulo
+v 0.0 0.0 0.0
+v 10.0 0.0 0.0
+v 5.0 10.0 0.0
+f 4 5 6
+```
+
+Os índices das primitivas são 1-based e globais ao arquivo. O fluxo completo é:
+criar ou carregar objetos, clicar em **"Salvar .obj"**, fechar o sistema,
+abri-lo novamente e clicar em **"Abrir .obj"** para restaurar a cena.
 
 ---
 
@@ -354,6 +415,20 @@ Resultado esperado: **5 testes funcionais passam**:
 | Cor padrão | Objeto sem cor informada | `obj.color == (0, 0, 0)` | ✅ OK |
 | Cor preservada após transformação | Objeto vermelho + `T(50,50)` | Objeto resultante também vermelho | ✅ OK |
 
+### 6.5 Integração OBJ — `test_obj_integration.py`
+
+Execução:
+
+```bash
+python3 test_obj_integration.py
+```
+
+Este teste funcional não abre a janela Tkinter. Ele cria dois objetos em um
+`DisplayFile`, escreve um arquivo temporário, lê o arquivo de volta e compara
+nomes, tipos e coordenadas. Também exercita o conflito de nomes: ao importar um
+objeto cujo nome já existe, o handler da interface escolhe o próximo sufixo
+disponível (`_2`, `_3`, ...).
+
 ---
 
 ## 7. Execução da Aplicação
@@ -367,7 +442,7 @@ A janela Tkinter será aberta com:
 - **Canvas central** — área de desenho com o sistema de coordenadas mundo.
 - **Barra superior** — campo de coordenadas (`x1,y1 x2,y2 ...`), campo de
   cor (`R,G,B`), controle incremental `Window angle (°)`, botão `Girar Window`,
-  botões `Adicionar` e `Limpar Tudo`.
+  botões `Adicionar`, `Abrir .obj`, `Salvar .obj` e `Limpar Tudo`.
 - **Painel direito** — contém:
   - `Listbox` listando todos os objetos do DisplayFile.
   - Botão `Remover Objeto Selecionado`.
